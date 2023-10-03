@@ -18,7 +18,10 @@ chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument("--no-sandbox")
-service = ChromeService(executable_path="./chromedriver.exe")
+# service = ChromeService(executable_path="./chromedriver.exe") # Windows
+service = ChromeService(
+    executable_path="/usr/local/bin/chromedriver"
+)  # Mac; Need to install chromedriver in this location
 
 driver = webdriver.Chrome(service=service, options=chrome_options)
 wait = WebDriverWait(driver, 10)
@@ -26,7 +29,9 @@ wait = WebDriverWait(driver, 10)
 try:
     for state in states_list:
         print(f"Running for {state} state")
-        start_url = f"https://www.greatschools.org/{state}/schools/?gradeLevels%5B%5D=h&page="
+        start_url = (
+            f"https://www.greatschools.org/{state}/schools/?gradeLevels%5B%5D=h&page="
+        )
 
         school_links = set()
         page_num = 1
@@ -42,13 +47,19 @@ try:
 
                 pagination_container = soup.find("div", class_="pagination-container")
                 if pagination_container:
-                    chevron_right_spans = pagination_container.find_all("span", class_="icon-chevron-right")
-                    
+                    chevron_right_spans = pagination_container.find_all(
+                        "span", class_="icon-chevron-right"
+                    )
+
                     if len(chevron_right_spans) >= 2:
                         next_button_span = chevron_right_spans[1]
-                        next_button = next_button_span.find_parent("a", class_="anchor-button")
+                        next_button = next_button_span.find_parent(
+                            "a", class_="anchor-button"
+                        )
                         if next_button:
-                            if "disabled" in next_button.get("class", []) and not next_button.get("href"):
+                            if "disabled" in next_button.get(
+                                "class", []
+                            ) and not next_button.get("href"):
                                 break
                             else:
                                 page_num += 1
@@ -65,18 +76,40 @@ try:
             print(f"Running for {link} school")
             try:
                 driver.get(link)
-                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='mailto:']")))
+                wait.until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "a[href*='mailto:']")
+                    )
+                )
                 soup = BeautifulSoup(driver.page_source, "html.parser")
 
                 mailto_links = soup.select("a[href*='mailto:']")
-                school_leader_name = (soup.select_one("span.school-leader").get_text(strip=True) if soup.select_one("span.school-leader") else "N/A")
-                school_name = (soup.select_one("title").get_text(strip=True) if soup.select_one("title") else "N/A")
+                school_leader_name = (
+                    soup.select_one("span.school-leader").get_text(strip=True)
+                    if soup.select_one("span.school-leader")
+                    else "N/A"
+                )
+                school_name = (
+                    soup.select_one("title").get_text(strip=True)
+                    if soup.select_one("title")
+                    else "N/A"
+                )
 
-                with open("us_school_emails.csv", "a", newline="", encoding="utf-8") as file:
+                with open(
+                    "us_school_emails.csv", "a", newline="", encoding="utf-8"
+                ) as file:
                     writer = csv.writer(file)
                     for mailto_link in mailto_links:
                         email_address = mailto_link.get("href").replace("mailto:", "")
-                        writer.writerow([state, link, school_name, school_leader_name, email_address])
+                        writer.writerow(
+                            [
+                                state,
+                                link,
+                                school_name,
+                                school_leader_name,
+                                email_address,
+                            ]
+                        )
             except Exception as e:
                 print(f"Failed to connect to {link}. Error: {e}")
                 time.sleep(2)

@@ -22,6 +22,7 @@ for div in soup.find_all('div', class_='col-sm-12'):
             states.add(state)
 # Convert the set to a list, if needed
 states_list = list(states)
+states_list.sort()
 
 with open('states.json', 'w') as f:
     json.dump(states_list, f)
